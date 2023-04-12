@@ -30,7 +30,7 @@ class MyWindow(QMainWindow, form_class, QObject):
         # Create an empty vlc media player
         self.mediaplayer = self.instance.media_player_new()
 
-        # Connect signals
+        # Connect signals 버튼, 슬라이드
         self.btnLoad.clicked.connect(self.load)
         self.btnPlay.clicked.connect(self.play_pause)
         self.btnStop.clicked.connect(self.stop)
@@ -45,9 +45,27 @@ class MyWindow(QMainWindow, form_class, QObject):
         self.timer.setInterval(100)
         self.timer.timeout.connect(self.update_ui)
 
+        #초기설정
         self.media = None
         self.is_paused = False
         self.is_stopped = True
+        self.play_ad=False
+
+        self.medialist = dict()
+        self.medialist[1] = '20190219_213522.mp4'
+        self.medialist[2] = '20190219_213616.mp4'
+
+    def ad(self):
+        if not self.play_ad :
+            for var in self.medialist.values():
+                self.play_ad = True
+                self.media = self.instance.media_new(var)
+                self.mediaplayer.set_media(self.media)
+                self.media.parse()
+                self.setWindowTitle(self.media.get_meta(0))
+                self.mediaplayer.play()
+                self.timer.start()
+
 
     def load(self):
         fname = QFileDialog.getOpenFileName(self)
@@ -71,7 +89,7 @@ class MyWindow(QMainWindow, form_class, QObject):
     def play_pause(self):
         self.is_stopped = False
 
-        if self.mediaplayer.is_playing():
+        if self.mediaplayer.is_playing(): #재생중일경우
             self.mediaplayer.pause()
             self.btnPlay.setText("Play")
             self.is_paused = True
@@ -79,7 +97,8 @@ class MyWindow(QMainWindow, form_class, QObject):
             if self.mediaplayer.play() == -1:
                 self.load()
                 return
-
+            #멈춰있을경우 재생
+            self.play_ad = False
             self.mediaplayer.play()
             self.btnPlay.setText("Pause")
             self.timer.start()
@@ -89,6 +108,7 @@ class MyWindow(QMainWindow, form_class, QObject):
         self.is_stopped = True
         self.mediaplayer.stop()
         self.btnPlay.setText("Play")
+        self.ad()
 
     def set_volume(self, value):
         self.mediaplayer.audio_set_volume(value)
@@ -141,8 +161,11 @@ class MyWindow(QMainWindow, form_class, QObject):
                 self.stop()
 
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     myWindow = MyWindow()
     myWindow.show()
+
+    myWindow.ad()
     sys.exit(app.exec_())
