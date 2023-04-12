@@ -52,8 +52,8 @@ class MyWindow(QMainWindow, form_class, QObject):
         self.play_ad=False
 
         self.medialist = dict()
-        self.medialist[1] = '20190219_213522.mp4'
-        self.medialist[2] = '20190219_213616.mp4'
+        self.medialist[1] = '/home/jiwon/Downloads/20190219_213522.mp4'
+        self.medialist[2] = '/home/jiwon/Downloads/20190219_213616.mp4'
 
     def ad(self):
         if not self.play_ad :
