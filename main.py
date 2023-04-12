@@ -1,6 +1,7 @@
 import platform
 import os
 import sys
+import time
 
 import vlc
 
@@ -41,6 +42,7 @@ class MyWindow(QMainWindow, form_class, QObject):
         self.sldrProgress.setMaximum(1000)
         self.mediaplayer.audio_set_volume(50)
 
+        #0.1초마다 update_ui실행
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(100)
         self.timer.timeout.connect(self.update_ui)
@@ -50,22 +52,35 @@ class MyWindow(QMainWindow, form_class, QObject):
         self.is_paused = False
         self.is_stopped = True
         self.play_ad=False
+        self.ad_key = None
 
         self.medialist = dict()
-        self.medialist[1] = '/home/jiwon/Downloads/20190219_213522.mp4'
-        self.medialist[2] = '/home/jiwon/Downloads/20190219_213616.mp4'
+        self.medialist['/home/jiwon/Downloads/test1.mp4'] = 1
+        self.medialist['/home/jiwon/Downloads/test2.mp4'] = 2
 
     def ad(self):
         if not self.play_ad :
-            for var in self.medialist.values():
-                self.play_ad = True
-                self.media = self.instance.media_new(var)
-                self.mediaplayer.set_media(self.media)
-                self.media.parse()
-                self.setWindowTitle(self.media.get_meta(0))
-                self.mediaplayer.play()
-                self.timer.start()
+            #입력이 없을 경우 광고 무한 재생
+            while True:
+                for var in self.medialist.keys():
+                    self.play_ad = True
 
+                    #재생중인 광고의 위치 저장
+                    self.ad_key = self.medialist[var]
+                    self.media = self.instance.media_new(var)
+                    self.mediaplayer.set_media(self.media)
+                    self.media.parse()
+                    self.setWindowTitle(self.media.get_meta(0))
+                    self.mediaplayer.play()
+                    self.timer.start()
+                    self.is_stopped = False
+
+                    #동영상의 길이 get
+                    time.sleep(0.1)
+                    self.playtime = self.mediaplayer.get_length()
+
+                    #동영상의 길이만큼 sleep
+                    time.sleep(self.playtime / 1000)
 
     def load(self):
         fname = QFileDialog.getOpenFileName(self)
@@ -130,8 +145,8 @@ class MyWindow(QMainWindow, form_class, QObject):
         # Note that the setValue function only takes values of type int,
         # so we must first convert the corresponding media position.
 
-        if not self.media:
-            return
+        # if not self.media:
+        #     return
 
         if self.is_stopped:
             self.lbStart.setText("00:00")
