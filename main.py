@@ -57,6 +57,7 @@ class MyWindow(QMainWindow, form_class, QObject):
         self.medialist = dict()
         self.medialist['/home/jiwon/Downloads/test1.mp4'] = 1
         self.medialist['/home/jiwon/Downloads/test2.mp4'] = 2
+        self.medialist['/home/jiwon/Downloads/test3.mp4'] = 3
 
     def ad(self):
         if not self.play_ad :
@@ -72,8 +73,11 @@ class MyWindow(QMainWindow, form_class, QObject):
                     self.media.parse()
                     self.setWindowTitle(self.media.get_meta(0))
                     self.mediaplayer.play()
-                    self.timer.start()
+                    #self.timer.start()
                     self.is_stopped = False
+
+                    #fullscreen
+                    #self.mediaplayer.set_fullscreen(True)
 
                     #동영상의 길이 get
                     time.sleep(0.1)
