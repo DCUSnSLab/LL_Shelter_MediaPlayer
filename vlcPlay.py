@@ -1,3 +1,7 @@
+import os
+import threading
+from time import sleep
+
 import vlc
 import glob
 
@@ -28,8 +32,11 @@ class VlcPlayer:
         :return: 성공:0, 실패:-1
         '''
         if path:
-            self.set_uri(path)
-            return self.media.play()
+            if os.path.isfile(path):
+                self.set_uri(path)
+                return self.media.play()
+            else:
+                print('There is no media file..')
         else:
             return self.media.play()
 
@@ -176,32 +183,66 @@ class VlcPlayer:
         '''
         self.media.event_manager().event_detach(event_type, callback)
 
+class KeyWorker(threading.Thread):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.val = 0
+        self.callback = None
+
+    def run(self):
+        while True:
+            sleep(5)
+            if self.val == 0:
+                self.val = 1
+
+                if self.callback is not None:
+                    self.callback(self.val)
+
+    def addCallback(self, callback):
+        self.callback = callback
 
 def my_call_back(event):
     print("콜백함수호출: 종료호출")
+
+def keycallback(val):
+    print('Key Worker callback : %d'%val)
     global status
     status = 1
-
+    player.play('/home/soobin/Downloads/test111/VID_20210202_202851.mp4')
 
 if "__main__" == __name__:
 
     # 뮤직비디오 파일
     media_file = "/home/jiwon/Downloads/test1.mp4"
 
-    path = '/home/jiwon/Videos/*.mp4'
-    media_list = glob.glob(path)
-
-    print(media_list)
-
     player = VlcPlayer()
     player.add_callback(vlc.EventType.MediaPlayerStopped, my_call_back)
 
+    keywork = KeyWorker('keyWorker')
+    keywork.addCallback(keycallback)
+    keywork.start()
+
+    status = 0
+
     while True:
+        path = '/home/soobin/Downloads/movie/*.mp4'
+        media_list = glob.glob(path)
+        print(media_list)
+
         for var in media_list:
-            player.play(var)
-            status = 0
-            while True:
-                if status == 1:
-                    break
-                else:
-                    pass
+            try:
+                player.play(var)
+                while True:
+                    sleep(2)
+                    print('status - ', player.get_state())
+                    if status == 1 and player.get_state() == -1:
+                        print('play return video')
+                        status = 0
+                        player.play(var)
+                    elif status == 0 and player.get_state() == -1:
+                        print('finish video')
+                        break
+
+            except Exception as e:
+                print(e)
