@@ -1,3 +1,5 @@
+from time import sleep
+
 import vlc
 import glob
 
@@ -12,14 +14,6 @@ class VlcPlayer:
             self.media = instance.media_player_new()
         else:
             self.media = vlc.MediaPlayer()
-
-    def set_uri(self, mrl):
-        '''
-        스트리밍 url주소 또는 로컬 재생파일을 설정
-        :param mrl: 스트리밍주소
-        :return:
-        '''
-        self.media.set_mrl(mrl)
 
     def play(self, path=None):
         '''
@@ -54,34 +48,12 @@ class VlcPlayer:
         '''
         self.media.stop()
 
-    def release(self):
-        '''
-        미디어 소스 초기화
-        :return:
-        '''
-        return self.media.release()
-
     def is_playing(self):
         '''
         플레이 상태 확인
         :return: 재생중 : 1, 재생중이지 않음 : 0
         '''
         return self.media.is_playing()
-
-    def get_time(self):
-        '''
-        Elapsed time, return millisecond value
-        :return:
-        '''
-        return self.media.get_time()
-
-    def set_time(self, ms):
-        '''
-        미디어 특정시간으로 이동.
-        :param ms:
-        :return: 성공 : 0, 실패 : -1
-        '''
-        return self.media.get_time(ms)
 
     # The total length of audio and video, returns the value in milliseconds
     def get_length(self):
@@ -91,19 +63,6 @@ class VlcPlayer:
         '''
         return self.media.get_length()
 
-    def get_volume(self):
-        '''
-        :return: 현재 볼륨 상태 값 (0~100)
-        '''
-        return self.media.audio_get_volume()
-
-    def set_volume(self, volume):
-        '''
-        볼륨 설정
-        :param volume: 0~100 사이 값
-        :return:
-        '''
-        return self.media.audio_set_volume(volume)
 
     # Return to the current state: playing; paused; other
     def get_state(self):
@@ -118,35 +77,6 @@ class VlcPlayer:
             return 0
         else:
             return -1
-
-    def get_position(self):
-        '''
-        현재 playback 진척도
-        :return: 미디어의 재생율 (1 이하 소숫점)
-        '''
-        return self.media.get_position()
-
-    def set_position(self, float_val):
-        '''
-        특정 재생율로 미디어의 재생위치를 변경.
-        :param float_val: 0~1 사이 float값
-        :return:
-        '''
-        return self.media.set_position(float_val)
-
-    def get_rate(self):
-        '''
-        :return: 재생속도
-        '''
-        return self.media.get_rate()
-
-    def set_rate(self, rate):
-        '''
-        재생속도 설정
-        :param rate: 배속
-        :return:
-        '''
-        return self.media.set_rate(rate)
 
     def set_ratio(self, ratio):
         '''
@@ -197,6 +127,8 @@ if "__main__" == __name__:
     player.add_callback(vlc.EventType.MediaPlayerStopped, my_call_back)
 
     while True:
+        path = '/home/jiwon/Videos/*.mp4'
+        media_list = glob.glob(path)
         for var in media_list:
             player.play(var)
             status = 0
@@ -204,4 +136,5 @@ if "__main__" == __name__:
                 if status == 1:
                     break
                 else:
+                    sleep(1)
                     pass
