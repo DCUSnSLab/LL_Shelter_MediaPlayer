@@ -3,6 +3,11 @@ from time import sleep
 import vlc
 import glob
 
+import asyncio  # 웹 소켓 모듈을 선언한다.
+import json
+import pickle
+import websockets  # 클라이언트 접속이 되면 호출된다.
+
 class VlcPlayer:
     '''
     args: VLC인스턴스 생성옵션
@@ -14,6 +19,14 @@ class VlcPlayer:
             self.media = instance.media_player_new()
         else:
             self.media = vlc.MediaPlayer()
+
+    def set_uri(self, mrl):
+        '''
+        스트리밍 url주소 또는 로컬 재생파일을 설정
+        :param mrl: 스트리밍주소
+        :return:
+        '''
+        self.media.set_mrl(mrl)
 
     def play(self, path=None):
         '''
@@ -111,20 +124,34 @@ def my_call_back(event):
     print("콜백함수호출: 종료호출")
     global status
     status = 1
+async def accept(websocket, path):
+    print('accepted', websocket.origin, websocket.id)
+    while True:
+        data = await websocket.recv()  # 클라이언트로부터 메시지를 대기한다.
+        recvdata = json.loads(data)
+        recvMsg = recvdata['message']
+
+        #if you receive '0' data from client once, add client socket into Advertiser client list
+ #advertise mode ready to client
+        print(data)
+        print(recvdata)
+        print(recvMsg)
+
+
+async def main():
+    # async with websockets.serve(accept, "localhost", 5000):
+    #     await asyncio.Future()
+    async with websockets.serve(accept, "localhost", 5000)
 
 
 if "__main__" == __name__:
 
-    # 뮤직비디오 파일
-    media_file = "/home/jiwon/Downloads/test1.mp4"
-
-    path = '/home/jiwon/Videos/*.mp4'
-    media_list = glob.glob(path)
-
-    print(media_list)
 
     player = VlcPlayer()
     player.add_callback(vlc.EventType.MediaPlayerStopped, my_call_back)
+    print("vlc")
+
+    asyncio.run(main())
 
     while True:
         path = '/home/jiwon/Videos/*.mp4'
