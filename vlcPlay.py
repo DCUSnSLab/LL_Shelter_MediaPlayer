@@ -1,3 +1,5 @@
+import os
+import threading
 from time import sleep
 
 import vlc
@@ -122,8 +124,10 @@ class VlcPlayer:
 
 def my_call_back(event):
     print("콜백함수호출: 종료호출")
-    global status
-    status = 1
+    global keywork
+    keywork.status = 1
+
+
 async def accept(websocket, path):
     print('accepted', websocket.origin, websocket.id)
     while True:
@@ -136,32 +140,53 @@ async def accept(websocket, path):
         print(data)
         print(recvdata)
         print(recvMsg)
+class KeyWorker(threading.Thread):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.val = 0
+        self.callback = None
+        self.status = 0
+
+    def run(self):
+        self.player()
+
+    def addCallback(self, callback):
+        self.callback = callback
+
+    def player(self):
+        player = VlcPlayer()
+        player.add_callback(vlc.EventType.MediaPlayerStopped, my_call_back)
+
+        while True:
+            path = '/home/jiwon/dev/LL_Docker_Setup/data/shelter/Advertisement/'
+            media_list = list()
+            for path, subdirs, files in os.walk(path):
+                for name in files:
+                    fn = os.path.join(path, name)
+                    print(fn)
+                    media_list.append(fn)
+            print(media_list)
+
+            for var in media_list:
+                player.play(var)
+                self.status = 0
+                while True:
+                    if self.status == 1:
+                        break
+                    else:
+                        sleep(1)
+                        pass
 
 
 async def main():
-    # async with websockets.serve(accept, "localhost", 5000):
-    #     await asyncio.Future()
-    async with websockets.serve(accept, "localhost", 5000)
+    async with websockets.serve(accept, "localhost", 5000):
+        await asyncio.Future()
 
 
 if "__main__" == __name__:
-
-
-    player = VlcPlayer()
-    player.add_callback(vlc.EventType.MediaPlayerStopped, my_call_back)
-    print("vlc")
+    keywork = KeyWorker('keyWorker')
+    #keywork.addCallback(keycallback)
+    keywork.start()
 
     asyncio.run(main())
-
-    while True:
-        path = '/home/jiwon/Videos/*.mp4'
-        media_list = glob.glob(path)
-        for var in media_list:
-            player.play(var)
-            status = 0
-            while True:
-                if status == 1:
-                    break
-                else:
-                    sleep(1)
-                    pass
