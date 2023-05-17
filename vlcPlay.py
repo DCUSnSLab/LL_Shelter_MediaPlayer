@@ -135,11 +135,15 @@ async def accept(websocket, path):
         recvdata = json.loads(data)
         recvMsg = recvdata['message']
 
+
         #if you receive '0' data from client once, add client socket into Advertiser client list
  #advertise mode ready to client
         print(data)
         print(recvdata)
         print(recvMsg)
+
+        keywork.sendMedia(recvMsg)
+
 class KeyWorker(threading.Thread):
     def __init__(self, name):
         super().__init__()
@@ -149,15 +153,11 @@ class KeyWorker(threading.Thread):
         self.status = 0
 
     def run(self):
-        self.player()
+        self.playAd()
 
     def addCallback(self, callback):
         self.callback = callback
-
-    def player(self):
-        player = VlcPlayer()
-        player.add_callback(vlc.EventType.MediaPlayerStopped, my_call_back)
-
+    def playAd(self):
         while True:
             path = '/home/jiwon/dev/LL_Docker_Setup/data/shelter/Advertisement/'
             media_list = list()
@@ -170,6 +170,7 @@ class KeyWorker(threading.Thread):
 
             for var in media_list:
                 player.play(var)
+                print(var)
                 self.status = 0
                 while True:
                     if self.status == 1:
@@ -178,6 +179,17 @@ class KeyWorker(threading.Thread):
                         sleep(1)
                         pass
 
+    def sendMedia(self, msg):
+        self.msg = msg
+        # self.status = 1
+        player.play('/home/jiwon/Downloads/loadtest.mp4')
+        print(self.msg)
+
+def keycallback(val):
+    print('Key Worker callback : %d'%val)
+    global keywork
+    keywork.status = 1
+    player.play('/home/jiwon/Downloads/sample_video.mp4')
 
 async def main():
     async with websockets.serve(accept, "localhost", 5000):
@@ -185,8 +197,11 @@ async def main():
 
 
 if "__main__" == __name__:
+    player = VlcPlayer()
+    player.add_callback(vlc.EventType.MediaPlayerStopped, my_call_back)
+
     keywork = KeyWorker('keyWorker')
-    #keywork.addCallback(keycallback)
+    keywork.addCallback(keycallback)
     keywork.start()
 
     asyncio.run(main())
