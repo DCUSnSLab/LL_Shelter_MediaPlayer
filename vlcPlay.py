@@ -1,4 +1,5 @@
 import os
+import subprocess
 import threading
 from time import sleep
 
@@ -21,6 +22,7 @@ class VlcPlayer:
             self.media = instance.media_player_new()
         else:
             self.media = vlc.MediaPlayer()
+            
 
     def set_uri(self, mrl):
         '''
@@ -125,7 +127,10 @@ class VlcPlayer:
 def my_call_back(event):
     print("콜백함수호출: 종료호출")
     global keywork
-    keywork.status = 1
+    if keywork.conStatus == 1 :
+        keywork.conStatus = 0
+    else :
+        keywork.adStatus = 0
 
 
 async def accept(websocket, path):
@@ -137,10 +142,8 @@ async def accept(websocket, path):
 
 
         #if you receive '0' data from client once, add client socket into Advertiser client list
- #advertise mode ready to client
+        #advertise mode ready to client
         print(data)
-        print(recvdata)
-        print(recvMsg)
 
         keywork.sendMedia(recvMsg)
 
@@ -148,9 +151,8 @@ class KeyWorker(threading.Thread):
     def __init__(self, name):
         super().__init__()
         self.name = name
-        self.val = 0
-        self.callback = None
-        self.status = 0
+        self.adStatus = 0  # 0 = 종료, 1 = 재생중, 2 = 일시중지(컨텐츠 재생)
+        self.conStatus = 0
 
     def run(self):
         self.playAd()
@@ -170,26 +172,29 @@ class KeyWorker(threading.Thread):
 
             for var in media_list:
                 player.play(var)
-                print(var)
-                self.status = 0
+                self.adStatus = 1
                 while True:
-                    if self.status == 1:
+                    if self.adStatus == 2:
+                        if self.conStatus == 0:
+                            player.play(var)
+                            self.adStatus = 1
+                            print(var)
+                        else:
+                            sleep(1)
+                            pass
+                    elif self.adStatus == 0:
                         break
                     else:
                         sleep(1)
                         pass
 
     def sendMedia(self, msg):
-        self.msg = msg
-        # self.status = 1
+        self.msg = "CID-"+msg
+        self.adStatus = 2
+        self.conStatus = 1
         player.play('/home/jiwon/Downloads/loadtest.mp4')
         print(self.msg)
 
-def keycallback(val):
-    print('Key Worker callback : %d'%val)
-    global keywork
-    keywork.status = 1
-    player.play('/home/jiwon/Downloads/sample_video.mp4')
 
 async def main():
     async with websockets.serve(accept, "localhost", 5000):
@@ -201,7 +206,6 @@ if "__main__" == __name__:
     player.add_callback(vlc.EventType.MediaPlayerStopped, my_call_back)
 
     keywork = KeyWorker('keyWorker')
-    keywork.addCallback(keycallback)
     keywork.start()
 
     asyncio.run(main())
