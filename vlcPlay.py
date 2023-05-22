@@ -22,7 +22,7 @@ class VlcPlayer:
             self.media = instance.media_player_new()
         else:
             self.media = vlc.MediaPlayer()
-            
+
 
     def set_uri(self, mrl):
         '''
@@ -192,7 +192,12 @@ class KeyWorker(threading.Thread):
         self.msg = "CID-"+msg
         self.adStatus = 2
         self.conStatus = 1
-        player.play('/home/jiwon/Downloads/loadtest.mp4')
+
+        path = '/home/jiwon/dev/LL_Docker_Setup/data/shelter/Contents/'+self.msg+"/Video/*"
+        content = glob.glob(path)
+        for var in content:
+            player.play(var)
+        print(path)
         print(self.msg)
 
 
