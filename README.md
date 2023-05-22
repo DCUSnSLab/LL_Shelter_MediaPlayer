@@ -1,9 +1,7 @@
-# python-media-player
-A simple media player with Python3 and PyQt5
+
 
 ## Requirements
 > Python 3.8.10
-> PyQt5 v5.12+ (tested on 5.12.1)  
 > python-vlc v3.0+ (tested on 3.0.11115)  
 > [VLC media player](https://www.videolan.org/vlc/) (tested on 3.0.11)  
 
