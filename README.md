@@ -9,6 +9,13 @@ A simple media player with Python3 and PyQt5
 
 ## Installation
 
+Install below python packages
+
+```bash
+pip install python-vlc
+pip install websockets
+```
+
 ## Reference
 https://git.videolan.org/?p=vlc/bindings/python.git;a=blob;f=examples/pyqt5vlc.py;h=cb3d29488c9efe43a80ae8d17e083137b368487d;hb=HEAD
 
