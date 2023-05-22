@@ -9,6 +9,8 @@ A simple media player with Python3 and PyQt5
 
 ## Installation
 
+Use python virtualenv (recommanded)
+
 Install below python packages
 
 ```bash
