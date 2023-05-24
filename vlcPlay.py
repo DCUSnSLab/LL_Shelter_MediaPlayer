@@ -23,6 +23,13 @@ class VlcPlayer:
         else:
             self.media = vlc.MediaPlayer()
 
+        # video_x = 0
+        # video_y = 0
+        # video_width = 1280
+        # video_height = 720
+        # self.media.set_xwindow(os.environ.get("DISPLAY"), video_x, video_y, video_width, video_height)
+
+        self.media.set_fullscreen(True)
 
     def set_uri(self, mrl):
         '''
@@ -208,6 +215,7 @@ async def main():
 
 if "__main__" == __name__:
     player = VlcPlayer()
+
     player.add_callback(vlc.EventType.MediaPlayerStopped, my_call_back)
 
     keywork = KeyWorker('keyWorker')
