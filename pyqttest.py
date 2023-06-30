@@ -16,10 +16,7 @@ import vlc
 
 
 class Player(QMainWindow):
-    """A simple Media Player using VLC and Qt
-    """
-
-    def __init__(self, master=None, screens=None):
+    def __init__(self, master=None, screens=None, debug=False):
         QMainWindow.__init__(self, master)
         self.setWindowTitle("Media Player")
         # Create a basic vlc instance
@@ -29,15 +26,21 @@ class Player(QMainWindow):
 
         # Create an empty vlc media player
         self.mediaplayer = self.instance.media_player_new()
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
-        self.move(screens[1].geometry().topLeft())
-        self.showFullScreen()
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
+        if debug is False:
+            self.move(screens[0].geometry().topLeft())
+            self.showFullScreen()
+        else:
+            self.resize(640, 480)
+            self.move(700,0)
+
+
         self.create_ui()
         self.is_paused = False
 
-        self.timer = QTimer(self)
-        self.timer.setInterval(100)
-        self.timer.timeout.connect(self.update_ui)
+        # self.timer = QTimer(self)
+        # self.timer.setInterval(100)
+        # self.timer.timeout.connect(self.update_ui)
 
         #self.open_file('/home/soobin/development/LL_Docker_Setup/data/shelter/Advertisement/AID-16/daegu_ad.mp4')
 
@@ -80,7 +83,7 @@ class Player(QMainWindow):
             self.mediaplayer.pause()
             #self.playbutton.setText("Play")
             self.is_paused = True
-            self.timer.stop()
+            #self.timer.stop()
         else:
             if self.mediaplayer.play() == -1:
                 self.open_file()
@@ -88,7 +91,7 @@ class Player(QMainWindow):
 
             self.mediaplayer.play()
             #self.playbutton.setText("Pause")
-            self.timer.start()
+            #self.timer.start()
             self.is_paused = False
 
     def stop(self):
@@ -98,11 +101,6 @@ class Player(QMainWindow):
         #self.playbutton.setText("Play")
 
     def open_file(self, addr):
-        """Open a media file in a MediaPlayer
-        """
-        print('open file')
-        #dialog_txt = "Choose Media File"
-        #filename = QtWidgets.QFileDialog.getOpenFileName(self, dialog_txt, os.path.expanduser('~'))
         filename = addr
         if not filename:
             return
@@ -186,7 +184,7 @@ class Playlist(QThread):
     def run(self):
         sleep(0.5)
         while True:
-            path = '/home/soobin/development/LL_Docker_Setup/data/shelter/Advertisement/'
+            path = '/Users/soobinjeon/Developments/LL_Docker_Setup/data/shelter/Advertisement/'
             media_list = list()
             for path, subdirs, files in os.walk(path):
                 for name in files:
@@ -203,7 +201,7 @@ class Playlist(QThread):
                 print('play media:', var)
                 sleep(0.5)
                 while True:
-                    print('mediaplayer : ', self.mediaplayer.is_playing())
+                    #print('mediaplayer : ', self.mediaplayer.is_playing())
                     if not self.mediaplayer.is_playing():
                         break
                     else:
@@ -228,10 +226,8 @@ def main():
     """Entry point for our simple vlc player
     """
     app = QApplication(sys.argv)
-    player = Player(master=None, screens=app.screens())
+    player = Player(master=None, screens=app.screens(), debug=False)
     player.show()
-    #player.resize(640, 480)
-
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
