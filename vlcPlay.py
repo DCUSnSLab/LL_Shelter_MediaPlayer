@@ -1,6 +1,7 @@
 import os
 import subprocess
 import threading
+import ctypes
 from time import sleep
 
 import vlc
@@ -22,14 +23,24 @@ class VlcPlayer:
             self.media = instance.media_player_new()
         else:
             self.media = vlc.MediaPlayer()
+            # vlc_arguments = [
+            #     "--vout", "x11",
+            #     "--x11-display", ":1", "--video-x=1000", "--video-y=0"  # Replace ":0.0" with the appropriate display identifier
+            # ]
+            # vlc_arguments = [
+            #     "--no-embedded-video", "--qt-fullscreen-screennumber=4", "--fullscreen"
+            # ]
+            # vlc_arguments = [
+            #     "--no-embedded-video", "--video-x=2000"
+            # ]
+            # vlc_instance = vlc.Instance(vlc_arguments)
+            # self.media = vlc_instance.media_player_new()
 
-        # video_x = 0
-        # video_y = 0
-        # video_width = 1280
-        # video_height = 720
-        # self.media.set_xwindow(os.environ.get("DISPLAY"), video_x, video_y, video_width, video_height)
+            print('---')
+        # instance = vlc.Instance('--qt-fullscreen-screennumber=0','-f')
+        # self.media = instance.media_player_new()
 
-        self.media.set_fullscreen(True)
+        #self.media.set_fullscreen(True)
 
     def set_uri(self, mrl):
         '''
@@ -168,7 +179,7 @@ class KeyWorker(threading.Thread):
         self.callback = callback
     def playAd(self):
         while True:
-            path = '/home/jiwon/dev/LL_Docker_Setup/data/shelter/Advertisement/'
+            path = '/home/soobin/development/LL_Docker_Setup/data/shelter/Advertisement/'
             media_list = list()
             for path, subdirs, files in os.walk(path):
                 for name in files:
@@ -201,7 +212,7 @@ class KeyWorker(threading.Thread):
         self.adStatus = 2
         self.conStatus = 1
 
-        path = '/home/jiwon/dev/LL_Docker_Setup/data/shelter/Contents/'+self.msg+"/Video/*"
+        path = '/home/soobin/development/LL_Docker_Setup/data/shelter/Contents/'+self.msg+"/Video/*"
         content = glob.glob(path)
         for var in content:
             player.play(var)
@@ -210,7 +221,7 @@ class KeyWorker(threading.Thread):
 
 
 async def main():
-    async with websockets.serve(accept, "localhost", 5000):
+    async with websockets.serve(accept, "localhost", 5001):
         await asyncio.Future()
 
 
