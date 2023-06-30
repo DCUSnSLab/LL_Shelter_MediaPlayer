@@ -4,22 +4,24 @@ A simple example for VLC python bindings using PyQt5.
 Author: Saveliy Yusufov, Columbia University, sy2685@columbia.edu
 Date: 25 December 2018
 """
-
+import asyncio
+import json
 import platform
 import os
 import sys
 from time import sleep
+
+import websockets
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 import vlc
 
+from advertiser import Advertiser
+
 
 class Player(QMainWindow):
-    """A simple Media Player using VLC and Qt
-    """
-
-    def __init__(self, master=None, screens=None):
+    def __init__(self, master=None, screens=None, debug=False):
         QMainWindow.__init__(self, master)
         self.setWindowTitle("Media Player")
         # Create a basic vlc instance
@@ -29,21 +31,28 @@ class Player(QMainWindow):
 
         # Create an empty vlc media player
         self.mediaplayer = self.instance.media_player_new()
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
-        self.move(screens[1].geometry().topLeft())
-        self.showFullScreen()
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
+        if debug is False:
+            self.move(screens[0].geometry().topLeft())
+            self.showFullScreen()
+        else:
+            self.move(700,0)
+
         self.create_ui()
         self.is_paused = False
 
-        self.timer = QTimer(self)
-        self.timer.setInterval(100)
-        self.timer.timeout.connect(self.update_ui)
+        # self.timer = QTimer(self)
+        # self.timer.setInterval(100)
+        # self.timer.timeout.connect(self.update_ui)
 
         #self.open_file('/home/soobin/development/LL_Docker_Setup/data/shelter/Advertisement/AID-16/daegu_ad.mp4')
 
         self.plistwk = Playlist(self.mediaplayer, parent=self)
         self.plistwk.content_msg.connect(self.playupdater)
         self.plistwk.start()
+
+        self.websockserver = websockerServer(self.mediaplayer, parent=self)
+        self.websockserver.start()
 
     def create_ui(self):
         """Set up the user interface, signals & slots
@@ -80,7 +89,7 @@ class Player(QMainWindow):
             self.mediaplayer.pause()
             #self.playbutton.setText("Play")
             self.is_paused = True
-            self.timer.stop()
+            #self.timer.stop()
         else:
             if self.mediaplayer.play() == -1:
                 self.open_file()
@@ -88,7 +97,7 @@ class Player(QMainWindow):
 
             self.mediaplayer.play()
             #self.playbutton.setText("Pause")
-            self.timer.start()
+            #self.timer.start()
             self.is_paused = False
 
     def stop(self):
@@ -98,11 +107,6 @@ class Player(QMainWindow):
         #self.playbutton.setText("Play")
 
     def open_file(self, addr):
-        """Open a media file in a MediaPlayer
-        """
-        print('open file')
-        #dialog_txt = "Choose Media File"
-        #filename = QtWidgets.QFileDialog.getOpenFileName(self, dialog_txt, os.path.expanduser('~'))
         filename = addr
         if not filename:
             return
@@ -186,7 +190,7 @@ class Playlist(QThread):
     def run(self):
         sleep(0.5)
         while True:
-            path = '/home/soobin/development/LL_Docker_Setup/data/shelter/Advertisement/'
+            path = '/Users/soobinjeon/Developments/LL_Docker_Setup/data/shelter/Advertisement/'
             media_list = list()
             for path, subdirs, files in os.walk(path):
                 for name in files:
@@ -203,7 +207,7 @@ class Playlist(QThread):
                 print('play media:', var)
                 sleep(0.5)
                 while True:
-                    print('mediaplayer : ', self.mediaplayer.is_playing())
+                    #print('mediaplayer : ', self.mediaplayer.is_playing())
                     if not self.mediaplayer.is_playing():
                         break
                     else:
@@ -223,14 +227,58 @@ class Playlist(QThread):
                     #     sleep(1)
                     #     pass
 
+class websockerServer(QThread):
+    def __init__(self, mediaplayer, parent=None):
+        super().__init__()
+        print('create websocket worker')
+        self.main = parent
+        self.mediaplayer = mediaplayer
+        self.working = True
+        self.adv = Advertiser()
+
+    async def accept(self, websocket, path):
+        print('accepted', websocket.origin, websocket.id)
+
+        try:
+            while True:
+                print("before")
+                data = await websocket.recv()  # 클라이언트로부터 메시지를 대기한다.
+                recvdata = json.loads(data)
+                recvMsg = int(recvdata['message'])
+                print("after")
+                print("Msg :", recvMsg)
+
+                # if you receive '0' data from client once, add client socket into Advertiser client list
+                if recvMsg == 0:  # advertise mode ready to client
+                    await self.adv.addClient(websocket)
+                    await self.adv.printClients()
+                else:
+                    print("Wrong Messages", data)
+        except Exception as e:
+            print(e)
+
+    async def server_callback(self):
+        print('init advertiser')
+        await self.adv.init_adv()
+        print('Start Websocket Server')
+        async with websockets.serve(self.accept, "localhost", 5001):
+            await asyncio.Future()
+
+    def run(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(self.server_callback())
+        loop.close()
+
 
 def main():
     """Entry point for our simple vlc player
     """
     app = QApplication(sys.argv)
-    player = Player(master=None, screens=app.screens())
+    player = Player(master=None, screens=app.screens(), debug=True)
     player.show()
-    #player.resize(640, 480)
+    player.resize(640, 480)
 
     sys.exit(app.exec_())
 
