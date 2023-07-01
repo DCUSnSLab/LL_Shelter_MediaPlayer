@@ -36,7 +36,9 @@ class Player(QMainWindow):
             self.move(screens[0].geometry().topLeft())
             self.showFullScreen()
         else:
+            self.resize(640, 480)
             self.move(700,0)
+
 
         self.create_ui()
         self.is_paused = False
@@ -276,10 +278,8 @@ def main():
     """Entry point for our simple vlc player
     """
     app = QApplication(sys.argv)
-    player = Player(master=None, screens=app.screens(), debug=True)
+    player = Player(master=None, screens=app.screens(), debug=False)
     player.show()
-    player.resize(640, 480)
-
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
