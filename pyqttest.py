@@ -5,12 +5,14 @@ Author: Saveliy Yusufov, Columbia University, sy2685@columbia.edu
 Date: 25 December 2018
 """
 import asyncio
+import glob
 import json
 import platform
 import os
 import sys
 from time import sleep
 
+import sysv_ipc
 import websockets
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -53,8 +55,9 @@ class Player(QMainWindow):
         self.plistwk.content_msg.connect(self.playupdater)
         self.plistwk.start()
 
-        self.websockserver = websockerServer(self.mediaplayer, parent=self)
-        self.websockserver.start()
+        self.advsync = AdvSync(self.mediaplayer, parent=self)
+        self.advsync.sync_handler.connect(self.plistwk.syncEventHndl)
+        self.advsync.start()
 
     def create_ui(self):
         """Set up the user interface, signals & slots
@@ -189,7 +192,21 @@ class Playlist(QThread):
         print('finish thread...')
         self.wait()
 
+    def syncEventHndl(self, data):
+        print('Playlist handled=',data)
+        subdir = 'AID-'+data
+        path = '/Users/soobinjeon/Developments/LL_Docker_Setup/data/shelter/Advertisement/'+subdir+'/*'
+        content = glob.glob(path)
+        for var in content:
+            self.content_msg.emit(var)
+
     def run(self):
+        #self.playlist()
+        while True:
+            sleep(1)
+        pass
+
+    def playlist(self):
         sleep(0.5)
         while True:
             path = '/Users/soobinjeon/Developments/LL_Docker_Setup/data/shelter/Advertisement/'
@@ -199,17 +216,17 @@ class Playlist(QThread):
                     fn = os.path.join(path, name)
                     print(fn)
                     media_list.append(fn)
-            #print(media_list)
+            # print(media_list)
 
             for var in media_list:
-                #self.open_file(var)
+                # self.open_file(var)
                 self.content_msg.emit(var)
-                #player.play(var)
+                # player.play(var)
                 self.adStatus = 1
                 print('play media:', var)
                 sleep(0.5)
                 while True:
-                    #print('mediaplayer : ', self.mediaplayer.is_playing())
+                    # print('mediaplayer : ', self.mediaplayer.is_playing())
                     if not self.mediaplayer.is_playing():
                         break
                     else:
@@ -229,56 +246,30 @@ class Playlist(QThread):
                     #     sleep(1)
                     #     pass
 
-class websockerServer(QThread):
+class AdvSync(QThread):
+    sync_handler = pyqtSignal(str)
+
     def __init__(self, mediaplayer, parent=None):
         super().__init__()
         print('create websocket worker')
         self.main = parent
         self.mediaplayer = mediaplayer
         self.working = True
-        self.adv = Advertiser()
-
-    async def accept(self, websocket, path):
-        print('accepted', websocket.origin, websocket.id)
-
-        try:
-            while True:
-                print("before")
-                data = await websocket.recv()  # 클라이언트로부터 메시지를 대기한다.
-                recvdata = json.loads(data)
-                recvMsg = int(recvdata['message'])
-                print("after")
-                print("Msg :", recvMsg)
-
-                # if you receive '0' data from client once, add client socket into Advertiser client list
-                if recvMsg == 0:  # advertise mode ready to client
-                    await self.adv.addClient(websocket)
-                    await self.adv.printClients()
-                else:
-                    print("Wrong Messages", data)
-        except Exception as e:
-            print(e)
-
-    async def server_callback(self):
-        print('init advertiser')
-        await self.adv.init_adv()
-        print('Start Websocket Server')
-        async with websockets.serve(self.accept, "localhost", 5001):
-            await asyncio.Future()
+        self.adv_mq = sysv_ipc.MessageQueue(3820, sysv_ipc.IPC_CREAT)
 
     def run(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        while True:
+            data = self.adv_mq.receive(type=0)
+            self.sync_handler.emit(str(int(data[0])))
 
-        loop.run_until_complete(self.server_callback())
-        loop.close()
+
 
 
 def main():
     """Entry point for our simple vlc player
     """
     app = QApplication(sys.argv)
-    player = Player(master=None, screens=app.screens(), debug=False)
+    player = Player(master=None, screens=app.screens(), debug=True)
     player.show()
     sys.exit(app.exec_())
 
