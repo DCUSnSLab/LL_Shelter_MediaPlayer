@@ -4,16 +4,15 @@ A simple example for VLC python bindings using PyQt5.
 Author: Saveliy Yusufov, Columbia University, sy2685@columbia.edu
 Date: 25 December 2018
 """
-import asyncio
+
 import glob
-import json
 import platform
 import os
 import sys
 from time import sleep
 
 import sysv_ipc
-import websockets
+import configparser
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
@@ -45,17 +44,16 @@ class Player(QMainWindow):
         self.create_ui()
         self.is_paused = False
 
-        # self.timer = QTimer(self)
-        # self.timer.setInterval(100)
-        # self.timer.timeout.connect(self.update_ui)
+        #config file setup
+        self.config = configFile("media_config.ini")
 
-        #self.open_file('/home/soobin/development/LL_Docker_Setup/data/shelter/Advertisement/AID-16/daegu_ad.mp4')
-
-        self.plistwk = Playlist(self.mediaplayer, parent=self)
+        #contents & advertisement management
+        self.plistwk = Playlist(self.mediaplayer, self.config, parent=self)
         self.plistwk.content_msg.connect(self.playupdater)
         self.plistwk.start()
 
-        self.advsync = AdvSync(self.mediaplayer, parent=self)
+        #sync with IDLE page
+        self.advsync = AdvSync(self.mediaplayer, self.config, parent=self)
         self.advsync.sync_handler.connect(self.plistwk.syncEventHndl)
         self.advsync.start()
 
@@ -160,32 +158,40 @@ class Player(QMainWindow):
         self.mediaplayer.set_position(pos / 1000.0)
         self.timer.start()
 
-    def update_ui(self):
-        """Updates the user interface"""
+class configFile():
+    def __init__(self, filename):
+        self.prop = configparser.ConfigParser()
+        self.prop.read(filename)
 
-        # Set the slider's position to its corresponding media position
-        # Note that the setValue function only takes values of type int,
-        # so we must first convert the corresponding media position.
-        #self.positionslider.setValue(media_pos)
+        self.advConfig = None
+        self.conConfig = None
+        self.getConfig()
 
-        # No need to call this function if nothing is played
-        if not self.mediaplayer.is_playing():
-            self.timer.stop()
+    def getConfig(self):
+        self.advConfig = self.prop["ADVERTISEMENT"]
+        self.conConfig = self.prop["CONTENTS"]
 
-            # After the video finished, the play button stills shows "Pause",
-            # which is not the desired behavior of a media player.
-            # This fixes that "bug".
-            if not self.is_paused:
-                self.stop()
+    def getAdvPath(self):
+        return self.advConfig["path"]
+
+    def getAdvMsgQueueID(self):
+        return self.advConfig["msgqueueid"]
+
+    def getContPath(self):
+        return self.conConfig["path"]
+
+    def getContMsgQeueID(self):
+        return self.conConfig["msgqueueid"]
 
 class Playlist(QThread):
     content_msg = pyqtSignal(str)
 
-    def __init__(self, mediaplayer, parent=None):
+    def __init__(self, mediaplayer, config: configFile, parent=None):
         super().__init__()
         print('create playlist worker')
         self.main = parent
         self.mediaplayer = mediaplayer
+        self.config = config
         self.working = True
 
     def __del__(self):
@@ -195,7 +201,7 @@ class Playlist(QThread):
     def syncEventHndl(self, data):
         print('Playlist handled=',data)
         subdir = 'AID-'+data
-        path = '/Users/soobinjeon/Developments/LL_Docker_Setup/data/shelter/Advertisement/'+subdir+'/*'
+        path = self.config.getAdvPath()+subdir+'/*'
         content = glob.glob(path)
         for var in content:
             self.content_msg.emit(var)
@@ -209,7 +215,7 @@ class Playlist(QThread):
     def playlist(self):
         sleep(0.5)
         while True:
-            path = '/Users/soobinjeon/Developments/LL_Docker_Setup/data/shelter/Advertisement/'
+            path = self.config.getAdvPath()
             media_list = list()
             for path, subdirs, files in os.walk(path):
                 for name in files:
@@ -249,13 +255,14 @@ class Playlist(QThread):
 class AdvSync(QThread):
     sync_handler = pyqtSignal(str)
 
-    def __init__(self, mediaplayer, parent=None):
+    def __init__(self, mediaplayer, config: configFile, parent=None):
         super().__init__()
         print('create websocket worker')
         self.main = parent
+        self.config = config
         self.mediaplayer = mediaplayer
         self.working = True
-        self.adv_mq = sysv_ipc.MessageQueue(3820, sysv_ipc.IPC_CREAT)
+        self.adv_mq = sysv_ipc.MessageQueue(int(self.config.getAdvMsgQueueID()), sysv_ipc.IPC_CREAT)
 
     def run(self):
         while True:
