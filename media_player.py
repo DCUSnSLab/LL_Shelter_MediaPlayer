@@ -53,9 +53,14 @@ class Player(QMainWindow):
         self.plistwk.start()
 
         #sync with IDLE page
-        self.advsync = AdvSync(self.mediaplayer, self.config, parent=self)
+        self.advsync = MsgQueueEvt(self.mediaplayer, self.config.getAdvMsgQueueID(), parent=self)
         self.advsync.sync_handler.connect(self.plistwk.syncEventHndl)
         self.advsync.start()
+
+        #content event
+        self.contentEvt = MsgQueueEvt(self.mediaplayer, self.config.getContMsgQeueID(), parent=self)
+        self.contentEvt.sync_handler.connect(self.plistwk.syncContentHndl)
+        self.contentEvt.start()
 
     def create_ui(self):
         """Set up the user interface, signals & slots
@@ -206,6 +211,24 @@ class Playlist(QThread):
         for var in content:
             self.content_msg.emit(var)
 
+    def syncContentHndl(self, data):
+        print('Contents Event=', data)
+        subdir = 'CID-'+data
+        #path = self.config.getContPath() + subdir + '/*'
+
+        # print(path)
+        # content = glob.glob(path)
+        # for var in content:
+        #     self.content_msg.emit(var)
+        path = self.config.getContPath() + subdir
+        print(path)
+        for p, subdirs, files in os.walk(path):
+            if len(files) > 0:
+                print('subdirs',subdirs,p,'filess--->',files)
+                p = p+'/'+files[0]
+                self.content_msg.emit(p)
+
+
     def run(self):
         #self.playlist()
         while True:
@@ -252,17 +275,16 @@ class Playlist(QThread):
                     #     sleep(1)
                     #     pass
 
-class AdvSync(QThread):
+class MsgQueueEvt(QThread):
     sync_handler = pyqtSignal(str)
 
-    def __init__(self, mediaplayer, config: configFile, parent=None):
+    def __init__(self, mediaplayer, msgqID, parent=None):
         super().__init__()
         print('create websocket worker')
         self.main = parent
-        self.config = config
         self.mediaplayer = mediaplayer
         self.working = True
-        self.adv_mq = sysv_ipc.MessageQueue(int(self.config.getAdvMsgQueueID()), sysv_ipc.IPC_CREAT)
+        self.adv_mq = sysv_ipc.MessageQueue(int(msgqID), mode=0o660, flags=sysv_ipc.IPC_CREAT)
 
     def run(self):
         while True:
