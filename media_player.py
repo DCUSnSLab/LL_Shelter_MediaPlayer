@@ -223,7 +223,9 @@ class Playlist(QThread):
         path = self.config.getContPath() + subdir
         print(path)
         for p, subdirs, files in os.walk(path):
-            if len(files) > 0:
+            sdir = p.split('/')
+            sdir = sdir[len(sdir) - 1]
+            if len(files) > 0 and sdir != 'Thumbnail':
                 print('subdirs',subdirs,p,'filess--->',files)
                 p = p+'/'+files[0]
                 self.content_msg.emit(p)
