@@ -18,8 +18,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 import vlc
 
-from advertiser import Advertiser
-
 
 class Player(QMainWindow):
     def __init__(self, master=None, screens=None, debug=False):
